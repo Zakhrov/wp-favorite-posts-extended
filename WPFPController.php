@@ -27,6 +27,7 @@ class JSON_API_WPFP_Controller {
 		//添加
 		wpfp_add_favorite($post_id);
 		wpfp_die_or_go('success',true);
+		// return 'Add Called';
 
 	}
 

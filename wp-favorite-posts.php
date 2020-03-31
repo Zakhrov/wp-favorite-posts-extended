@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: WP Favorite Posts Extended
-Plugin URI: https://github.com/avrilmaomao/wp-favorite-posts-extended
-Description:
-Version: 1.6.2
+Plugin Name: WP Favorite Posts
+Plugin URI: https://github.com/Zakhrov/wp-favorite-posts-extended
+Description: Allows users to add favorite posts. This plugin use cookies for saving data so unregistered users can favorite a post. Put <code>&lt;?php wpfp_link(); ?&gt;</code> where ever you want on a single post. Then create a page which includes that text : <code>[wp-favorite-posts]</code> That's it!
+Version: 1.6.6
 Author: Huseyin Berberoglu
-Author URI: http://nxsn.com
+Author URI: https://github.com/Zakhrov
 
 */
 
@@ -38,6 +38,16 @@ if ( !defined( 'WPFP_DEFAULT_PRIVACY_SETTING' ) )
 
 $ajax_mode = 1;
 
+function wpfp_load_translation() {
+    load_plugin_textdomain(
+        "wp-favorite-posts",
+        false,
+        dirname(plugin_basename(__FILE__)).'/lang'
+    );
+}
+
+add_action( 'plugins_loaded', 'wpfp_load_translation' );
+
 function wp_favorite_posts() {
     if (isset($_REQUEST['wpfpaction'])):
         global $ajax_mode;
@@ -64,7 +74,7 @@ function wpfp_add_favorite($post_id = "") {
     if (wpfp_do_add_to_list($post_id)) {
         // added, now?
         do_action('wpfp_after_add', $post_id);
-        if (wpfp_get_option('statics')) wpfp_update_post_meta($post_id, 1);
+        if (wpfp_get_option('statistics')) wpfp_update_post_meta($post_id, 1);
         if (wpfp_get_option('added') == 'show remove link') {
             $str = wpfp_link(1, "remove", 0, array( 'post_id' => $post_id ) );
             wpfp_die_or_go($str);
@@ -88,7 +98,7 @@ function wpfp_remove_favorite($post_id = "") {
     if (wpfp_do_remove_favorite($post_id)) {
         // removed, now?
         do_action('wpfp_after_remove', $post_id);
-        if (wpfp_get_option('statics')) wpfp_update_post_meta($post_id, -1);
+        if (wpfp_get_option('statistics')) wpfp_update_post_meta($post_id, -1);
         if (wpfp_get_option('removed') == 'show add link') {
             if ( isset($_REQUEST['page']) && $_REQUEST['page'] == 1 ):
                 $str = '';
@@ -103,21 +113,23 @@ function wpfp_remove_favorite($post_id = "") {
     else return false;
 }
 
-function wpfp_die_or_go($str,$is_succ = true) {
-    global $ajax_mode;
-	if (wpfp_is_json_api()){
-		if($is_succ){
-			die(json_encode(array('status'=>'ok','message'=>$str)));
-		}else{
-			die(json_encode(array(('status')=>'error','error'=>$str)));
-		}
-	}else{
-	    if ($ajax_mode):
-	        die($str);
-	    else:
-	        wp_redirect($_SERVER['HTTP_REFERER']);
-	    endif;
-	}
+function wpfp_die_or_go($str) {
+  global $ajax_mode;
+  if (wpfp_is_json_api()){
+    if($is_succ){
+      die(json_encode(array('status'=>'ok','message'=>$str)));
+    }else{
+      die(json_encode(array(('status')=>'error','error'=>$str)));
+    }
+  }else{
+    if ($ajax_mode):
+        die($str);
+    else:
+        wp_redirect($_SERVER['HTTP_REFERER']);
+    endif;
+  }
+
+
 }
 
 function wpfp_add_to_usermeta($post_id) {
@@ -167,7 +179,7 @@ function wpfp_link( $return = 0, $action = "", $show_span = 1, $args = array() )
 }
 
 function wpfp_link_html($post_id, $opt, $action) {
-    $link = "<a class='wpfp-link' href='?wpfpaction=".$action."&amp;postid=". $post_id . "' title='". $opt ."' rel='nofollow'>". $opt ."</a>";
+    $link = "<a class='wpfp-link' href='?wpfpaction=".$action."&amp;postid=". esc_attr($post_id) . "' title='". $opt ."' rel='nofollow'>". $opt ."</a>";
     $link = apply_filters( 'wpfp_link_html', $link );
     return $link;
 }
@@ -317,7 +329,7 @@ add_shortcode('wp-favorite-posts', 'wpfp_shortcode_func');
 
 function wpfp_add_js_script() {
 	if (!wpfp_get_option('dont_load_js_file'))
-		wp_enqueue_script( "wp-favroite-posts", WPFP_PATH . "/wpfp.js", array( 'jquery' ) );
+		wp_enqueue_script( "wp-favorite-posts", WPFP_PATH . "/wpfp.js", array( 'jquery' ) );
 }
 add_action('wp_print_scripts', 'wpfp_add_js_script');
 
@@ -339,7 +351,7 @@ function wpfp_init() {
     $wpfp_options['cookie_warning'] = "Your favorite posts saved to your browsers cookies. If you clear cookies also favorite posts will be deleted.";
     $wpfp_options['rem'] = "remove";
     $wpfp_options['text_only_registered'] = "Only registered users can favorite!";
-    $wpfp_options['statics'] = 1;
+    $wpfp_options['statistics'] = 1;
     $wpfp_options['widget_title'] = '';
     $wpfp_options['widget_limit'] = 5;
     $wpfp_options['uf_widget_limit'] = 5;
